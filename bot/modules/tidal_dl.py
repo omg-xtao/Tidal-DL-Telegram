@@ -1,17 +1,26 @@
 from bot import CMD
 from config import LOGGER, Config
 from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardButton
 from bot.helpers.translations import lang
 from bot.helpers.utils.auth_check import check_id
 from bot.helpers.utils.check_link import check_link
 from bot.helpers.tidal_func.events import checkLogin, start
 
+
 @Client.on_message(filters.command(CMD.DOWNLOAD))
-async def download_tidal(bot, update):
+async def download_tidal(bot, update: Message):
     if check_id(message=update):
         try:
             if update.reply_to_message:
                 link = update.reply_to_message.text
+                reply_markup = update.reply_to_message.reply_markup
+                if reply_markup and reply_markup.inline_keyboard:
+                    for keyboards in reply_markup.inline_keyboard:
+                        for keyboard in keyboards:
+                            if isinstance(keyboard, InlineKeyboardButton) and keyboard.url and "tidal" in keyboard.url:
+                                link = keyboard.url
+                                break
                 reply_to_id = update.reply_to_message.id
             else:
                 link = update.text.split(" ", maxsplit=1)[1]
@@ -39,7 +48,7 @@ async def download_tidal(bot, update):
                     text=lang.select.ERR_AUTH_CHECK.format(err),
                 )
                 return
-        
+
             await bot.delete_messages(
                 chat_id=update.chat.id,
                 message_ids=msg.id
